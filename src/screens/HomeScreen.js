@@ -136,6 +136,7 @@ export default function HomeScreen({ navigation }) {
   const handleBgTouchEnd = useCallback(() => {
     if (!isSwiping.current) handleScreenPress();
     swipeStartY.current = null;
+    isSwiping.current = false;
   }, [handleScreenPress]);
 
   const handleBgMouseDown = useCallback((e) => {
@@ -149,6 +150,7 @@ export default function HomeScreen({ navigation }) {
   const handleBgMouseUp = useCallback(() => {
     if (!isSwiping.current) handleScreenPress();
     swipeStartY.current = null;
+    isSwiping.current = false;
   }, [handleScreenPress]);
 
   const handleBgMouseLeave = useCallback(() => {
