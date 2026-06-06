@@ -105,31 +105,20 @@ export default function HomeScreen({ navigation }) {
   }, []);
 
   const handleRainToggle = useCallback(() => {
-    setRainActive((prev) => {
-      const next = !prev;
-      if (next) {
-        setRainMounted(true);
-        loadRainSound().then(() => {
-          rainSoundRef.current?.setPositionAsync(0);
-          rainSoundRef.current?.playAsync();
-        });
-      } else {
-        rainSoundRef.current?.stopAsync();
-      }
-      return next;
-    });
-  }, [loadRainSound]);
-
-  // Play thunder on rain start — called from swipe handler outside setState
-  const thunderOnRainRef = useRef(false);
-  useEffect(() => {
-    if (rainActive && !thunderOnRainRef.current) {
-      thunderOnRainRef.current = true;
+    const next = !rainActive;
+    if (next) {
+      setRainActive(true);
+      setRainMounted(true);
+      loadRainSound().then(() => {
+        rainSoundRef.current?.setPositionAsync(0);
+        rainSoundRef.current?.playAsync();
+      });
       playThunder();
-    } else if (!rainActive) {
-      thunderOnRainRef.current = false;
+    } else {
+      setRainActive(false);
+      rainSoundRef.current?.stopAsync();
     }
-  }, [rainActive, playThunder]);
+  }, [rainActive, loadRainSound, playThunder]);
 
   useEffect(() => {
     if (!rive) return;
@@ -267,12 +256,13 @@ export default function HomeScreen({ navigation }) {
         </View>
       </View>
       <View style={[styles.swipeGlow, { opacity: swipeProgress }]} pointerEvents="none" />
-      <View style={styles.midSection} pointerEvents="box-none">
+      <View style={styles.topSection} pointerEvents="box-none">
         <View style={styles.headerRow}>
           <VolumeStrip label="Fire" value={fireVolume} onChange={setFireVolume} icon={<FireIcon />} activeColor="#ff6b6b" />
           <VolumeStrip label="Rain" value={rainVolume} onChange={setRainVolume} icon={<RainIcon />} activeColor="#74b9ff" />
           <VolumeStrip label="Story" value={storyVolume} onChange={setStoryVolume} icon={<MusicIcon />} activeColor="#a29bfe" />
         </View>
+        <View style={{ height: 28 }} />
         <TapePlayer storyVolume={storyVolume} />
       </View>
 
@@ -425,13 +415,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 16,
   },
-  midSection: {
+  topSection: {
     position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
+    top: 0,
+    left: 0,
+    right: 0,
     zIndex: 20,
-    justifyContent: 'center',
     alignItems: 'center',
-    gap: 0,
+    paddingTop: 56,
   },
   dayBadge: {
     backgroundColor: 'rgba(42,24,72,0.6)',
