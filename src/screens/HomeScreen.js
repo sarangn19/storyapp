@@ -126,44 +126,11 @@ export default function HomeScreen({ navigation }) {
     }
   }, [handleRainToggle]);
 
-  const handleBgTouchStart = useCallback((e) => {
-    suppressMouseRef.current = false;
-    handleSwipeStart(e.touches[0].clientY);
-  }, [handleSwipeStart]);
-
-  const handleBgTouchMove = useCallback((e) => {
-    handleSwipeMove(e.touches[0].clientY);
-  }, [handleSwipeMove]);
-
-  const handleBgTouchEnd = useCallback(() => {
-    suppressMouseRef.current = true;
-    setTimeout(() => { suppressMouseRef.current = false; }, 400);
-    if (!isSwiping.current) handleScreenPress();
-    swipeStartY.current = null;
-    isSwiping.current = false;
-  }, [handleScreenPress]);
-
-  const handleBgMouseDown = useCallback((e) => {
-    if (suppressMouseRef.current) return;
-    handleSwipeStart(e.clientY);
-  }, [handleSwipeStart]);
-
-  const handleBgMouseMove = useCallback((e) => {
-    if (suppressMouseRef.current) return;
-    handleSwipeMove(e.clientY);
-  }, [handleSwipeMove]);
-
-  const handleBgMouseUp = useCallback(() => {
-    if (suppressMouseRef.current) return;
-    if (!isSwiping.current) handleScreenPress();
-    swipeStartY.current = null;
-    isSwiping.current = false;
-  }, [handleScreenPress]);
-
-  const handleBgMouseLeave = useCallback(() => {
-    suppressMouseRef.current = false;
-    swipeStartY.current = null;
-    isSwiping.current = false;
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = 'body { margin: 0 !important; }';
+    document.head.appendChild(style);
+    return () => { document.head.removeChild(style); };
   }, []);
 
   if (loading) {
@@ -189,7 +156,7 @@ export default function HomeScreen({ navigation }) {
         onMouseLeave={handleBgMouseLeave}
       >
         <View style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
           overflow: 'hidden',
         }}>
           <View style={{ position: 'absolute', width: '100%', height: '100%', zIndex: 10 }}>
@@ -278,6 +245,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     overscrollBehavior: 'none',
     backgroundColor: '#150118',
+    position: 'relative',
   },
   headerRow: {
     position: 'absolute',
