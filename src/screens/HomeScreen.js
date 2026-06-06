@@ -176,11 +176,12 @@ const styles = StyleSheet.create({
   headerRow: {
     position: 'absolute',
     top: 64,
-    left: 24,
-    right: 24,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
+    gap: 16,
     zIndex: 10,
   },
   volumeRow: {
