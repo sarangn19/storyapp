@@ -107,6 +107,7 @@ export default function TapePlayer({ storyVolume = 0.7 }) {
   const isSeekingRef = useRef(false);
   const dragStart = useRef({ x: 0, y: 0 });
   const volumeRef = useRef(storyVolume);
+  const autoAdvanceRef = useRef(() => {});
   volumeRef.current = storyVolume;
 
   const story = STORIES[currentIndex];
@@ -128,7 +129,7 @@ export default function TapePlayer({ storyVolume = 0.7 }) {
     }
     sound.setOnPlaybackStatusUpdate((status) => {
       if (status.isLoaded && status.didJustFinish) {
-        setCurrentIndex((prev) => (prev + 1) % STORIES.length);
+        autoAdvanceRef.current();
       }
     });
     if (autoPlay) {
@@ -136,10 +137,21 @@ export default function TapePlayer({ storyVolume = 0.7 }) {
     }
   }, []);
 
+  // Keep auto-advance ref pointing to latest version
+  useEffect(() => {
+    autoAdvanceRef.current = async () => {
+      const nextIdx = (currentIndex + 1) % STORIES.length;
+      setCurrentIndex(nextIdx);
+      if (isPlaying) {
+        await loadStory(nextIdx, true);
+      }
+    };
+  });
+
   const ensureLoaded = useCallback(async () => {
-    if (!soundRef.current) {
-      await loadStory(currentIndex, false);
-    }
+    await soundRef.current?.unloadAsync();
+    clearInterval(intervalRef.current);
+    await loadStory(currentIndex, false);
   }, [currentIndex, loadStory]);
 
   useEffect(() => {
@@ -174,25 +186,19 @@ export default function TapePlayer({ storyVolume = 0.7 }) {
   const handleNext = useCallback(async () => {
     const nextIdx = (currentIndex + 1) % STORIES.length;
     setCurrentIndex(nextIdx);
-    if (isPlaying) {
-      await loadStory(nextIdx, true);
-    }
+    await loadStory(nextIdx, isPlaying);
   }, [currentIndex, isPlaying, loadStory]);
 
   const handlePrev = useCallback(async () => {
     const prevIdx = (currentIndex - 1 + STORIES.length) % STORIES.length;
     setCurrentIndex(prevIdx);
-    if (isPlaying) {
-      await loadStory(prevIdx, true);
-    }
+    await loadStory(prevIdx, isPlaying);
   }, [currentIndex, isPlaying, loadStory]);
 
   const handleSelectStory = useCallback(async (index) => {
     setCurrentIndex(index);
     setShowLibrary(false);
-    if (isPlaying) {
-      await loadStory(index, true);
-    }
+    await loadStory(index, isPlaying);
   }, [isPlaying, loadStory]);
 
   const handleTouchStart = (e) => {

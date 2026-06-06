@@ -53,6 +53,7 @@ export default function HomeScreen({ navigation }) {
 
   const soundRef = useRef(null);
   const rainSoundRef = useRef(null);
+  const thunderSoundRef = useRef(null);
 
   useEffect(() => {
     const load = async () => {
@@ -64,7 +65,7 @@ export default function HomeScreen({ navigation }) {
       setLoading(false);
     };
     load();
-    return () => { soundRef.current?.unloadAsync(); };
+    return () => { soundRef.current?.unloadAsync(); rainSoundRef.current?.unloadAsync(); thunderSoundRef.current?.unloadAsync(); };
   }, []);
 
   const loadRainSound = useCallback(async () => {
@@ -74,6 +75,28 @@ export default function HomeScreen({ navigation }) {
       { isLooping: true }
     );
     rainSoundRef.current = sound;
+  }, []);
+
+  const playThunder = useCallback(async () => {
+    try {
+      if (thunderSoundRef.current) {
+        await thunderSoundRef.current.setPositionAsync(0);
+        await thunderSoundRef.current.playAsync();
+        return;
+      }
+      const { sound } = await Audio.Sound.createAsync(
+        require('../../assets/thunder.mp3'),
+        { isLooping: false }
+      );
+      thunderSoundRef.current = sound;
+      await sound.playAsync();
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.didJustFinish) {
+          sound.unloadAsync();
+          thunderSoundRef.current = null;
+        }
+      });
+    } catch (e) {}
   }, []);
 
   const unloadRainSound = useCallback(async () => {
@@ -90,12 +113,13 @@ export default function HomeScreen({ navigation }) {
           rainSoundRef.current?.setPositionAsync(0);
           rainSoundRef.current?.playAsync();
         });
+        playThunder();
       } else {
         rainSoundRef.current?.stopAsync();
       }
       return next;
     });
-  }, [loadRainSound]);
+  }, [loadRainSound, playThunder]);
 
   useEffect(() => {
     if (!rive) return;
