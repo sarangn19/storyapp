@@ -24,6 +24,7 @@ export default function HomeScreen({ navigation }) {
   const [storyVolume, setStoryVolume] = useState(0.7);
   const [loading, setLoading] = useState(true);
   const [activeVolume, setActiveVolume] = useState(null);
+  const [swipeProgress, setSwipeProgress] = useState(0);
 
   const { rive, RiveComponent } = useRive({
     src: require('../../assets/fire.riv'),
@@ -114,11 +115,15 @@ export default function HomeScreen({ navigation }) {
   const handleSwipeStart = useCallback((clientY) => {
     swipeStartY.current = clientY;
     isSwiping.current = false;
+    setSwipeProgress(0);
   }, []);
 
   const handleSwipeMove = useCallback((clientY) => {
     if (swipeStartY.current === null) return;
     const dy = clientY - swipeStartY.current;
+    if (dy > 0) {
+      setSwipeProgress(Math.min(dy / SWIPE_THRESHOLD, 1));
+    }
     if (dy > SWIPE_THRESHOLD) {
       isSwiping.current = true;
       swipeStartY.current = null;
@@ -141,6 +146,7 @@ export default function HomeScreen({ navigation }) {
     if (!isSwiping.current) handleScreenPress();
     swipeStartY.current = null;
     isSwiping.current = false;
+    setSwipeProgress(0);
   }, [handleScreenPress]);
 
   const handleBgMouseDown = useCallback((e) => {
@@ -158,12 +164,14 @@ export default function HomeScreen({ navigation }) {
     if (!isSwiping.current) handleScreenPress();
     swipeStartY.current = null;
     isSwiping.current = false;
+    setSwipeProgress(0);
   }, [handleScreenPress]);
 
   const handleBgMouseLeave = useCallback(() => {
     suppressMouseRef.current = false;
     swipeStartY.current = null;
     isSwiping.current = false;
+    setSwipeProgress(0);
   }, []);
 
   useEffect(() => {
@@ -205,6 +213,7 @@ export default function HomeScreen({ navigation }) {
           {rainMounted && <RainLayer visible={rainActive} />}
         </View>
       </View>
+      <View style={[styles.swipeGlow, { opacity: swipeProgress }]} pointerEvents="none" />
       <View style={styles.headerRow} pointerEvents="box-none">
         <View style={styles.volumeRow}>
           {VOL_ITEMS.map((item) => (
@@ -286,6 +295,18 @@ const styles = StyleSheet.create({
     overscrollBehavior: 'none',
     backgroundColor: '#150118',
     position: 'relative',
+  },
+  swipeGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+    zIndex: 15,
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.08) 50%, transparent 100%)',
+    borderBottomLeftRadius: 40,
+    borderBottomRightRadius: 40,
+    transition: 'opacity 0.15s ease-out',
   },
   headerRow: {
     position: 'absolute',
