@@ -103,6 +103,8 @@ export default function TapePlayer({ storyVolume = 0.7 }) {
   const soundRef = useRef(null);
   const intervalRef = useRef(null);
   const containerRef = useRef(null);
+  const seekRef = useRef(null);
+  const isSeekingRef = useRef(false);
   const dragStart = useRef({ x: 0, y: 0 });
   const volumeRef = useRef(storyVolume);
   volumeRef.current = storyVolume;
@@ -224,12 +226,50 @@ export default function TapePlayer({ storyVolume = 0.7 }) {
 
   const progress = duration > 0 ? (position / duration) * 100 : 0;
 
-  const handleSeek = (e) => {
-    const val = parseFloat(e.target.value);
-    const newPosition = (val / 100) * duration;
+  const [isSeeking, setIsSeeking] = useState(false);
+
+  const seekToPosition = useCallback((clientX) => {
+    if (!seekRef.current || !soundRef.current || duration === 0) return;
+    const rect = seekRef.current.getBoundingClientRect();
+    let fraction = (clientX - rect.left) / rect.width;
+    fraction = Math.max(0, Math.min(1, fraction));
+    const newPosition = fraction * duration;
     setPosition(newPosition);
-    soundRef.current?.setPositionAsync(newPosition * 1000);
-  };
+    soundRef.current.setPositionAsync(newPosition * 1000);
+  }, [duration]);
+
+  const handleSeekStart = useCallback((e) => {
+    e.stopPropagation();
+    setIsSeeking(true);
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    seekToPosition(clientX);
+  }, [seekToPosition]);
+
+  const handleSeekMove = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    seekToPosition(clientX);
+  }, [seekToPosition]);
+
+  const handleSeekEnd = useCallback((e) => {
+    setIsSeeking(false);
+    e.stopPropagation();
+  }, []);
+
+  useEffect(() => {
+    if (!isSeeking) return;
+    window.addEventListener('mousemove', handleSeekMove);
+    window.addEventListener('mouseup', handleSeekEnd);
+    window.addEventListener('touchmove', handleSeekMove, { passive: false });
+    window.addEventListener('touchend', handleSeekEnd);
+    return () => {
+      window.removeEventListener('mousemove', handleSeekMove);
+      window.removeEventListener('mouseup', handleSeekEnd);
+      window.removeEventListener('touchmove', handleSeekMove);
+      window.removeEventListener('touchend', handleSeekEnd);
+    };
+  }, [isSeeking, handleSeekMove, handleSeekEnd]);
 
   return (
     <View style={styles.container}>
@@ -271,16 +311,15 @@ export default function TapePlayer({ storyVolume = 0.7 }) {
               <span style={styles.timeText}>{formatTime(position)}</span>
               <span style={styles.timeText}>{formatTime(duration)}</span>
             </View>
-            <View style={styles.slider}>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                step="0.5"
-                value={progress}
-                onChange={handleSeek}
-                style={styles.seekSlider}
-              />
+            <View
+              ref={seekRef}
+              style={styles.seekContainer}
+              onMouseDown={handleSeekStart}
+              onTouchStart={handleSeekStart}
+            >
+              <View style={styles.seekTrack} />
+              <View style={[styles.seekFill, { width: `${progress}%` }]} />
+              <View style={[styles.seekThumb, { left: `${progress}%` }]} />
             </View>
           </View>
           <View style={styles.rightButtons}>
@@ -460,19 +499,44 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontFamily: 'monospace',
   },
-  slider: {
+  seekContainer: {
     height: 14,
     justifyContent: 'center',
     position: 'relative',
     marginTop: 2,
-  },
-  seekSlider: {
-    width: '100%',
-    height: 14,
-    accentColor: '#f1c40f',
     cursor: 'pointer',
-    backgroundColor: 'transparent',
-    outline: 'none',
+  },
+  seekTrack: {
+    position: 'absolute',
+    left: 0, right: 0,
+    height: 3,
+    backgroundColor: '#333',
+    borderRadius: 2,
+    top: 5.5,
+  },
+  seekFill: {
+    position: 'absolute',
+    height: 3,
+    backgroundColor: '#f1c40f',
+    borderRadius: 2,
+    top: 5.5,
+    left: 0,
+    maxWidth: '100%',
+  },
+  seekThumb: {
+    position: 'absolute',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#f1c40f',
+    top: 2,
+    marginLeft: -5,
+    zIndex: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.5,
+    shadowRadius: 2,
+    elevation: 3,
   },
   rightButtons: {
     flex: 1,
