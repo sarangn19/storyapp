@@ -195,15 +195,38 @@ export default function TapePlayer({ storyVolume = 0.7 }) {
     }
   }, [isPlaying, loadStory]);
 
-  const handleMouseDown = (e) => {
+  const handleTouchStart = (e) => {
+    e.stopPropagation();
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    dragStart.current = { x: e.clientX - rect.left, y: e.clientY - rect.top, centerX: rect.width / 2, centerY: rect.height / 2 };
+    const touch = e.touches[0];
+    dragStart.current = { x: touch.clientX - rect.left, y: touch.clientY - rect.top, centerX: rect.width / 2, centerY: rect.height / 2 };
     isDraggingRef.current = true;
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isDraggingRef.current || !containerRef.current) return;
+    e.stopPropagation();
+    const rect = containerRef.current.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const rotateX = ((centerY - y) / centerY) * 10;
+    const rotateY = ((x - centerX) / centerX) * 10;
+    setTilt({ x: rotateX, y: rotateY, active: true });
+  };
+
+  const handleTouchEnd = (e) => {
+    e?.stopPropagation();
+    isDraggingRef.current = false;
+    setTilt({ x: 0, y: 0, active: false });
   };
 
   const handleMouseMove = (e) => {
     if (!isDraggingRef.current || !containerRef.current) return;
+    e.stopPropagation();
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -214,12 +237,14 @@ export default function TapePlayer({ storyVolume = 0.7 }) {
     setTilt({ x: rotateX, y: rotateY, active: true });
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = (e) => {
+    e?.stopPropagation();
     isDraggingRef.current = false;
     setTilt({ x: 0, y: 0, active: false });
   };
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = (e) => {
+    e?.stopPropagation();
     isDraggingRef.current = false;
     setTilt({ x: 0, y: 0, active: false });
   };
@@ -279,6 +304,9 @@ export default function TapePlayer({ storyVolume = 0.7 }) {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         style={[styles.device, {
           transform: [
             { perspective: 1000 },

@@ -101,8 +101,59 @@ export default function HomeScreen({ navigation }) {
     rainSoundRef.current?.setVolumeAsync(rainVolume);
   }, [rainVolume]);
 
+  const SWIPE_THRESHOLD = 60;
+  const swipeStartY = useRef(null);
+  const isSwiping = useRef(false);
+
   const handleScreenPress = useCallback(() => {
+    if (isSwiping.current) return;
     setFireStarted((prev) => !prev);
+  }, []);
+
+  const handleSwipeStart = useCallback((clientY) => {
+    swipeStartY.current = clientY;
+    isSwiping.current = false;
+  }, []);
+
+  const handleSwipeMove = useCallback((clientY) => {
+    if (swipeStartY.current === null) return;
+    const dy = clientY - swipeStartY.current;
+    if (dy > SWIPE_THRESHOLD) {
+      isSwiping.current = true;
+      swipeStartY.current = null;
+      handleRainToggle();
+    }
+  }, [handleRainToggle]);
+
+  const handleBgTouchStart = useCallback((e) => {
+    handleSwipeStart(e.touches[0].clientY);
+  }, [handleSwipeStart]);
+
+  const handleBgTouchMove = useCallback((e) => {
+    handleSwipeMove(e.touches[0].clientY);
+  }, [handleSwipeMove]);
+
+  const handleBgTouchEnd = useCallback(() => {
+    if (!isSwiping.current) handleScreenPress();
+    swipeStartY.current = null;
+  }, [handleScreenPress]);
+
+  const handleBgMouseDown = useCallback((e) => {
+    handleSwipeStart(e.clientY);
+  }, [handleSwipeStart]);
+
+  const handleBgMouseMove = useCallback((e) => {
+    handleSwipeMove(e.clientY);
+  }, [handleSwipeMove]);
+
+  const handleBgMouseUp = useCallback(() => {
+    if (!isSwiping.current) handleScreenPress();
+    swipeStartY.current = null;
+  }, [handleScreenPress]);
+
+  const handleBgMouseLeave = useCallback(() => {
+    swipeStartY.current = null;
+    isSwiping.current = false;
   }, []);
 
   if (loading) {
@@ -117,7 +168,16 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <View style={styles.fullBg}>
-      <Pressable style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} onPress={handleScreenPress}>
+      <View
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+        onTouchStart={handleBgTouchStart}
+        onTouchMove={handleBgTouchMove}
+        onTouchEnd={handleBgTouchEnd}
+        onMouseDown={handleBgMouseDown}
+        onMouseMove={handleBgMouseMove}
+        onMouseUp={handleBgMouseUp}
+        onMouseLeave={handleBgMouseLeave}
+      >
         <View style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           overflow: 'hidden',
@@ -127,7 +187,7 @@ export default function HomeScreen({ navigation }) {
           </View>
           {rainMounted && <RainLayer visible={rainActive} />}
         </View>
-      </Pressable>
+      </View>
       <View style={styles.headerRow} pointerEvents="box-none">
         <View style={styles.volumeRow}>
           {VOL_ITEMS.map((item) => (
