@@ -113,10 +113,10 @@ export default function TapePlayer({ storyVolume = 0.7 }) {
     return () => { soundRef.current?.unloadAsync(); clearInterval(intervalRef.current); };
   }, []);
 
-  const loadStory = useCallback(async (index) => {
+  const loadStory = useCallback(async (index, autoPlay = false) => {
     await soundRef.current?.unloadAsync();
     clearInterval(intervalRef.current);
-    const { sound } = await Audio.Sound.createAsync(STORIES[index].file, { shouldPlay: false });
+    const { sound } = await Audio.Sound.createAsync(STORIES[index].file, { shouldPlay: autoPlay });
     soundRef.current = sound;
     await sound.setVolumeAsync(volumeRef.current);
     const status = await sound.getStatusAsync();
@@ -126,14 +126,18 @@ export default function TapePlayer({ storyVolume = 0.7 }) {
     }
     sound.setOnPlaybackStatusUpdate((status) => {
       if (status.isLoaded && status.didJustFinish) {
-        handleNext();
+        setCurrentIndex((prev) => (prev + 1) % STORIES.length);
       }
     });
+    if (autoPlay) {
+      setIsPlaying(true);
+    }
   }, []);
 
-  useEffect(() => {
-    loadStory(currentIndex);
-    setIsPlaying(false);
+  const ensureLoaded = useCallback(async () => {
+    if (!soundRef.current) {
+      await loadStory(currentIndex, false);
+    }
   }, [currentIndex, loadStory]);
 
   useEffect(() => {
@@ -156,20 +160,38 @@ export default function TapePlayer({ storyVolume = 0.7 }) {
     soundRef.current?.setVolumeAsync(storyVolume);
   }, [storyVolume]);
 
-  const handlePlayPause = () => setIsPlaying((prev) => !prev);
+  const handlePlayPause = useCallback(async () => {
+    if (isPlaying) {
+      setIsPlaying(false);
+    } else {
+      await ensureLoaded();
+      setIsPlaying(true);
+    }
+  }, [isPlaying, ensureLoaded]);
 
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % STORIES.length);
-  };
+  const handleNext = useCallback(async () => {
+    const nextIdx = (currentIndex + 1) % STORIES.length;
+    setCurrentIndex(nextIdx);
+    if (isPlaying) {
+      await loadStory(nextIdx, true);
+    }
+  }, [currentIndex, isPlaying, loadStory]);
 
-  const handlePrev = () => {
-    setCurrentIndex((prev) => (prev - 1 + STORIES.length) % STORIES.length);
-  };
+  const handlePrev = useCallback(async () => {
+    const prevIdx = (currentIndex - 1 + STORIES.length) % STORIES.length;
+    setCurrentIndex(prevIdx);
+    if (isPlaying) {
+      await loadStory(prevIdx, true);
+    }
+  }, [currentIndex, isPlaying, loadStory]);
 
-  const handleSelectStory = (index) => {
+  const handleSelectStory = useCallback(async (index) => {
     setCurrentIndex(index);
     setShowLibrary(false);
-  };
+    if (isPlaying) {
+      await loadStory(index, true);
+    }
+  }, [isPlaying, loadStory]);
 
   const handleMouseDown = (e) => {
     if (!containerRef.current) return;

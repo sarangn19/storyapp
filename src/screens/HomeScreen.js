@@ -1,30 +1,27 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Audio } from 'expo-av';
-import { View, Text, StyleSheet, Pressable, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useRive, Layout, Fit, Alignment, LoopType } from '@rive-app/react-canvas';
 import TapePlayer from '../components/TapePlayer';
+import RainLayer from '../components/RainLayer';
 import { colors, typography, spacing, borderRadius } from '../constants/theme';
 
 export default function HomeScreen({ navigation }) {
   const [fireStarted, setFireStarted] = useState(false);
   const [rainActive, setRainActive] = useState(false);
+  const [rainMounted, setRainMounted] = useState(false);
   const [fireVolume, setFireVolume] = useState(0.5);
   const [rainVolume, setRainVolume] = useState(0.5);
   const [storyVolume, setStoryVolume] = useState(0.7);
+  const [loading, setLoading] = useState(true);
 
   const { rive, RiveComponent } = useRive({
     src: require('../../assets/fire.riv'),
     layout: new Layout({ fit: Fit.Cover, alignment: Alignment.BottomCenter }),
     autoplay: false,
-  });
-
-  const { RiveComponent: RainComponent } = useRive({
-    src: require('../../assets/rain.riv'),
-    layout: new Layout({ fit: Fit.Cover, alignment: Alignment.BottomCenter }),
-    autoplay: true,
   });
 
   const soundRef = useRef(null);
@@ -37,22 +34,41 @@ export default function HomeScreen({ navigation }) {
         { isLooping: true }
       );
       soundRef.current = sound;
+      setLoading(false);
     };
     load();
     return () => { soundRef.current?.unloadAsync(); };
   }, []);
 
-  useEffect(() => {
-    const load = async () => {
-      const { sound } = await Audio.Sound.createAsync(
-        require('../../assets/rain sound.mp3'),
-        { isLooping: true }
-      );
-      rainSoundRef.current = sound;
-    };
-    load();
-    return () => { rainSoundRef.current?.unloadAsync(); };
+  const loadRainSound = useCallback(async () => {
+    if (rainSoundRef.current) return;
+    const { sound } = await Audio.Sound.createAsync(
+      require('../../assets/rain sound.mp3'),
+      { isLooping: true }
+    );
+    rainSoundRef.current = sound;
   }, []);
+
+  const unloadRainSound = useCallback(async () => {
+    await rainSoundRef.current?.unloadAsync();
+    rainSoundRef.current = null;
+  }, []);
+
+  const handleRainToggle = useCallback(() => {
+    setRainActive((prev) => {
+      const next = !prev;
+      if (next) {
+        setRainMounted(true);
+        loadRainSound().then(() => {
+          rainSoundRef.current?.setPositionAsync(0);
+          rainSoundRef.current?.playAsync();
+        });
+      } else {
+        rainSoundRef.current?.stopAsync();
+      }
+      return next;
+    });
+  }, [loadRainSound]);
 
   useEffect(() => {
     if (!rive) return;
@@ -71,15 +87,6 @@ export default function HomeScreen({ navigation }) {
   }, [fireStarted, rive]);
 
   useEffect(() => {
-    if (rainActive) {
-      rainSoundRef.current?.setPositionAsync(0);
-      rainSoundRef.current?.playAsync();
-    } else {
-      rainSoundRef.current?.stopAsync();
-    }
-  }, [rainActive]);
-
-  useEffect(() => {
     soundRef.current?.setVolumeAsync(fireVolume);
   }, [fireVolume]);
 
@@ -87,30 +94,33 @@ export default function HomeScreen({ navigation }) {
     rainSoundRef.current?.setVolumeAsync(rainVolume);
   }, [rainVolume]);
 
-  const handleScreenPress = () => {
+  const handleScreenPress = useCallback(() => {
     setFireStarted((prev) => !prev);
-  };
+  }, []);
 
-  const background = (
-    <View style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      overflow: 'hidden',
-    }}>
-      <View style={{ position: 'absolute', width: '100%', height: '100%', zIndex: 10 }}>
-        <RiveComponent style={{ width: '100%', height: '100%' }} />
+  if (loading) {
+    return (
+      <View style={styles.fullBg}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#f1c40f" />
+        </View>
       </View>
-      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 11, opacity: rainActive ? 0.6 : 0, transition: 'opacity 0.6s ease' }}>
-        <RainComponent style={{ width: '100%', height: '100%' }} />
-      </View>
-    </View>
-  );
+    );
+  }
 
   return (
     <View style={styles.fullBg}>
       <Pressable style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} onPress={handleScreenPress}>
-        {background}
+        <View style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          overflow: 'hidden',
+        }}>
+          <View style={{ position: 'absolute', width: '100%', height: '100%', zIndex: 10 }}>
+            <RiveComponent style={{ width: '100%', height: '100%' }} />
+          </View>
+          {rainMounted && <RainLayer visible={rainActive} />}
+        </View>
       </Pressable>
-      {/* Header */}
       <View style={styles.headerRow} pointerEvents="box-none">
         <View style={styles.volumeRow}>
           <View style={styles.volItem}>
@@ -129,7 +139,7 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.headerRight}>
           <TouchableOpacity
             style={[styles.rainButton, rainActive && styles.rainButtonActive]}
-            onPress={() => setRainActive((prev) => !prev)}
+            onPress={handleRainToggle}
             activeOpacity={0.7}
           >
             <Ionicons
@@ -141,12 +151,10 @@ export default function HomeScreen({ navigation }) {
         </View>
       </View>
 
-      {/* Tape Player - clicks won't propagate to fire toggle */}
       <View style={styles.playerArea} pointerEvents="box-none">
         <TapePlayer storyVolume={storyVolume} />
       </View>
 
-      {/* Bottom gradient */}
       <LinearGradient
         colors={['transparent', 'rgba(18,11,36,0.6)']}
         style={styles.bottomGradient}
@@ -233,6 +241,12 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily,
     fontSize: typography.caption,
     color: colors.textDim,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#150118',
   },
   bottomGradient: {
     position: 'absolute',
