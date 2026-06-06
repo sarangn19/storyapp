@@ -55,39 +55,54 @@ function formatTime(seconds) {
 
 function Spools({ isPlaying }) {
   const [angle, setAngle] = useState(0);
+  const [beltOffset, setBeltOffset] = useState(0);
   const intervalRef = useRef(null);
 
   useEffect(() => {
     if (isPlaying) {
       intervalRef.current = setInterval(() => {
         setAngle((prev) => (prev + 6) % 360);
+        setBeltOffset((prev) => (prev + 2) % 40);
       }, 50);
     } else {
       clearInterval(intervalRef.current);
       setAngle(0);
+      setBeltOffset(0);
     }
     return () => clearInterval(intervalRef.current);
   }, [isPlaying]);
 
-  const spool = (idx) => (
-    <View key={idx} style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#222', borderWidth: 2, borderColor: '#333', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
-      <View style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 1, borderColor: '#555', alignItems: 'center', justifyContent: 'center' }}>
-        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#f1c40f' }} />
-      </View>
-      <View style={{ position: 'absolute', top: 0, left: 0, width: 56, height: 56, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: `${angle}deg` }] }}>
-        <View style={{ position: 'absolute', width: 4, height: 30, backgroundColor: '#333', borderRadius: 2, top: 13, left: 26 }} />
-        <View style={{ position: 'absolute', width: 30, height: 4, backgroundColor: '#333', borderRadius: 2, top: 26, left: 13 }} />
-        <View style={{ position: 'absolute', width: 4, height: 30, backgroundColor: '#333', borderRadius: 2, top: 13, left: 26, transform: [{ rotate: '45deg' }] }} />
-        <View style={{ position: 'absolute', width: 4, height: 30, backgroundColor: '#333', borderRadius: 2, top: 13, left: 26, transform: [{ rotate: '-45deg' }] }} />
-      </View>
-    </View>
-  );
-
   return (
-    <View style={{ width: '100%', height: 80, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 80, position: 'relative' }}>
-      <View style={{ position: 'absolute', top: 27, left: 28, right: 28, height: 26, borderRadius: 13, borderWidth: 1.5, borderColor: '#f1c40f', borderStyle: 'dashed' }} />
-      {spool(0)}
-      {spool(1)}
+    <View style={{ width: '100%', height: 80, alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+      <svg width="100%" height="80" viewBox="0 0 260 80" style={{ position: 'absolute', top: 0, left: 0 }}>
+        <line x1="42" y1="40" x2="218" y2="40" stroke="#f1c40f" strokeWidth="2"
+          strokeDasharray="8 6"
+          strokeDashoffset={isPlaying ? -beltOffset : 0}
+          opacity="0.9"
+        />
+      </svg>
+      {[0, 1].map((idx) => (
+        <View key={idx} style={{
+          width: 56, height: 56, borderRadius: 28, backgroundColor: '#222',
+          borderWidth: 2, borderColor: '#333', alignItems: 'center', justifyContent: 'center',
+          position: 'absolute', top: 12, zIndex: 1,
+          [idx === 0 ? 'left' : 'right']: 14,
+        }}>
+          <View style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 1, borderColor: '#555', alignItems: 'center', justifyContent: 'center' }}>
+            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#f1c40f' }} />
+          </View>
+          <View style={{
+            position: 'absolute', top: 0, left: 0, width: 56, height: 56,
+            alignItems: 'center', justifyContent: 'center',
+            transform: [{ rotate: `${angle}deg` }],
+          }}>
+            <View style={{ position: 'absolute', width: 4, height: 30, backgroundColor: '#333', borderRadius: 2, top: 13, left: 26 }} />
+            <View style={{ position: 'absolute', width: 30, height: 4, backgroundColor: '#333', borderRadius: 2, top: 26, left: 13 }} />
+            <View style={{ position: 'absolute', width: 4, height: 30, backgroundColor: '#333', borderRadius: 2, top: 13, left: 26, transform: [{ rotate: '45deg' }] }} />
+            <View style={{ position: 'absolute', width: 4, height: 30, backgroundColor: '#333', borderRadius: 2, top: 13, left: 26, transform: [{ rotate: '-45deg' }] }} />
+          </View>
+        </View>
+      ))}
     </View>
   );
 }
