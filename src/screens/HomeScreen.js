@@ -7,11 +7,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRive, Layout, Fit, Alignment, LoopType } from '@rive-app/react-canvas';
 import TapePlayer from '../components/TapePlayer';
 import { colors, typography, spacing, borderRadius } from '../constants/theme';
-import { COPY } from '../constants/copy';
-import { useApp } from '../context/AppContext';
 
 export default function HomeScreen({ navigation }) {
-  const { state } = useApp();
   const [fireStarted, setFireStarted] = useState(false);
   const [rainActive, setRainActive] = useState(false);
   const [fireVolume, setFireVolume] = useState(0.5);
