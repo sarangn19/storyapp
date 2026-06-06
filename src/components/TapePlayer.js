@@ -224,6 +224,13 @@ export default function TapePlayer({ storyVolume = 0.7 }) {
 
   const progress = duration > 0 ? (position / duration) * 100 : 0;
 
+  const handleSeek = (e) => {
+    const val = parseFloat(e.target.value);
+    const newPosition = (val / 100) * duration;
+    setPosition(newPosition);
+    soundRef.current?.setPositionAsync(newPosition * 1000);
+  };
+
   return (
     <View style={styles.container}>
       <View
@@ -265,9 +272,15 @@ export default function TapePlayer({ storyVolume = 0.7 }) {
               <span style={styles.timeText}>{formatTime(duration)}</span>
             </View>
             <View style={styles.slider}>
-              <View style={styles.sliderTrack} />
-              <View style={[styles.sliderFill, { width: `${progress}%` }]} />
-              <View style={[styles.sliderThumb, { left: `${progress}%`, marginLeft: -4 }]} />
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="0.5"
+                value={progress}
+                onChange={handleSeek}
+                style={styles.seekSlider}
+              />
             </View>
           </View>
           <View style={styles.rightButtons}>
@@ -453,28 +466,13 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginTop: 2,
   },
-  sliderTrack: {
-    position: 'absolute',
-    left: 0, right: 0,
-    height: 2,
-    backgroundColor: '#333',
-    top: 6,
-  },
-  sliderFill: {
-    position: 'absolute',
-    height: 4,
-    backgroundColor: '#f1c40f',
-    top: 5,
-    borderRadius: 2,
-    left: 0,
-  },
-  sliderThumb: {
-    position: 'absolute',
-    width: 8,
+  seekSlider: {
+    width: '100%',
     height: 14,
-    backgroundColor: '#f1c40f',
-    borderRadius: 2,
-    top: 0,
+    accentColor: '#f1c40f',
+    cursor: 'pointer',
+    backgroundColor: 'transparent',
+    outline: 'none',
   },
   rightButtons: {
     flex: 1,
