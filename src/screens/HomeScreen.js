@@ -113,13 +113,23 @@ export default function HomeScreen({ navigation }) {
           rainSoundRef.current?.setPositionAsync(0);
           rainSoundRef.current?.playAsync();
         });
-        playThunder();
       } else {
         rainSoundRef.current?.stopAsync();
       }
       return next;
     });
-  }, [loadRainSound, playThunder]);
+  }, [loadRainSound]);
+
+  // Play thunder on rain start — called from swipe handler outside setState
+  const thunderOnRainRef = useRef(false);
+  useEffect(() => {
+    if (rainActive && !thunderOnRainRef.current) {
+      thunderOnRainRef.current = true;
+      playThunder();
+    } else if (!rainActive) {
+      thunderOnRainRef.current = false;
+    }
+  }, [rainActive, playThunder]);
 
   useEffect(() => {
     if (!rive) return;
@@ -263,10 +273,6 @@ export default function HomeScreen({ navigation }) {
           <VolumeStrip label="Rain" value={rainVolume} onChange={setRainVolume} icon={<RainIcon />} activeColor="#74b9ff" />
           <VolumeStrip label="Story" value={storyVolume} onChange={setStoryVolume} icon={<MusicIcon />} activeColor="#a29bfe" />
         </View>
-        <TapePlayer storyVolume={storyVolume} />
-      </View>
-
-      <View style={styles.playerArea} pointerEvents="box-none">
         <TapePlayer storyVolume={storyVolume} />
       </View>
 
