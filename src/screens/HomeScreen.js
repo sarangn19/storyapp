@@ -218,7 +218,7 @@ export default function HomeScreen({ navigation }) {
 
   useEffect(() => {
     const style = document.createElement('style');
-    style.textContent = 'body { margin: 0 !important; }';
+    style.textContent = 'body { margin: 0 !important; overflow: hidden !important; height: 100vh !important; } html { overflow: hidden !important; height: 100vh !important; }';
     document.head.appendChild(style);
     return () => { document.head.removeChild(style); };
   }, []);
@@ -359,6 +359,7 @@ const stripStyles = StyleSheet.create({
     cursor: 'pointer',
     borderWidth: 1,
     borderColor: '#222',
+    touchAction: 'none',
   },
   fill: {
     position: 'absolute',
@@ -403,7 +404,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 120,
-    zIndex: 15,
+    zIndex: 100,
     background: 'linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.08) 50%, transparent 100%)',
     borderBottomLeftRadius: 40,
     borderBottomRightRadius: 40,
@@ -423,6 +424,7 @@ const styles = StyleSheet.create({
     zIndex: 20,
     alignItems: 'center',
     paddingTop: 56,
+    touchAction: 'none',
   },
   dayBadge: {
     backgroundColor: 'rgba(42,24,72,0.6)',
