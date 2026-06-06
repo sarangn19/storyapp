@@ -224,6 +224,14 @@ export default function TapePlayer({ storyVolume = 0.7 }) {
     setTilt({ x: 0, y: 0, active: false });
   };
 
+  const handleMouseDown = (e) => {
+    e.stopPropagation();
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    dragStart.current = { x: e.clientX - rect.left, y: e.clientY - rect.top, centerX: rect.width / 2, centerY: rect.height / 2 };
+    isDraggingRef.current = true;
+  };
+
   const handleMouseMove = (e) => {
     if (!isDraggingRef.current || !containerRef.current) return;
     e.stopPropagation();
