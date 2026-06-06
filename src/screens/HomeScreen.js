@@ -257,10 +257,13 @@ export default function HomeScreen({ navigation }) {
         </View>
       </View>
       <View style={[styles.swipeGlow, { opacity: swipeProgress }]} pointerEvents="none" />
-      <View style={styles.headerRow} pointerEvents="box-none">
-        <VolumeStrip label="Fire" value={fireVolume} onChange={setFireVolume} icon={<FireIcon />} activeColor="#ff6b6b" />
-        <VolumeStrip label="Rain" value={rainVolume} onChange={setRainVolume} icon={<RainIcon />} activeColor="#74b9ff" />
-        <VolumeStrip label="Story" value={storyVolume} onChange={setStoryVolume} icon={<MusicIcon />} activeColor="#a29bfe" />
+      <View style={styles.midSection} pointerEvents="box-none">
+        <View style={styles.headerRow}>
+          <VolumeStrip label="Fire" value={fireVolume} onChange={setFireVolume} icon={<FireIcon />} activeColor="#ff6b6b" />
+          <VolumeStrip label="Rain" value={rainVolume} onChange={setRainVolume} icon={<RainIcon />} activeColor="#74b9ff" />
+          <VolumeStrip label="Story" value={storyVolume} onChange={setStoryVolume} icon={<MusicIcon />} activeColor="#a29bfe" />
+        </View>
+        <TapePlayer storyVolume={storyVolume} />
       </View>
 
       <View style={styles.playerArea} pointerEvents="box-none">
@@ -411,23 +414,18 @@ const styles = StyleSheet.create({
     transition: 'opacity 0.15s ease-out',
   },
   headerRow: {
-    position: 'absolute',
-    top: 64,
-    left: 0,
-    right: 0,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 16,
-    zIndex: 10,
   },
-  playerArea: {
+  midSection: {
     position: 'absolute',
-    top: 100,
-    left: 0,
-    right: 0,
+    top: 0, left: 0, right: 0, bottom: 0,
     zIndex: 20,
+    justifyContent: 'center',
     alignItems: 'center',
+    gap: 0,
   },
   dayBadge: {
     backgroundColor: 'rgba(42,24,72,0.6)',
