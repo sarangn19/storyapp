@@ -69,34 +69,42 @@ export default function HomeScreen({ navigation }) {
   }, []);
 
   const loadRainSound = useCallback(async () => {
-    if (rainSoundRef.current) return;
+    if (rainSoundRef.current) { console.log('RAIN loadRainSound: already loaded'); return; }
+    console.log('RAIN loadRainSound: creating sound...');
     const { sound } = await Audio.Sound.createAsync(
       require('../../assets/rain sound.mp3'),
       { isLooping: true }
     );
+    console.log('RAIN loadRainSound: sound created', sound);
     rainSoundRef.current = sound;
   }, []);
 
   const playThunder = useCallback(async () => {
     try {
       if (thunderSoundRef.current) {
+        console.log('THUNDER: reusing existing');
         await thunderSoundRef.current.setPositionAsync(0);
         await thunderSoundRef.current.playAsync();
+        console.log('THUNDER: reused, played');
         return;
       }
+      console.log('THUNDER: creating new sound');
       const { sound } = await Audio.Sound.createAsync(
         require('../../assets/thunder.mp3'),
         { isLooping: false }
       );
       thunderSoundRef.current = sound;
+      console.log('THUNDER: created, playing');
       await sound.playAsync();
+      console.log('THUNDER: play returned');
       sound.setOnPlaybackStatusUpdate((status) => {
         if (status.didJustFinish) {
+          console.log('THUNDER: finished, unloading');
           sound.unloadAsync();
           thunderSoundRef.current = null;
         }
       });
-    } catch (e) {}
+    } catch (e) { console.error('THUNDER error', e); }
   }, []);
 
   const unloadRainSound = useCallback(async () => {
@@ -107,14 +115,23 @@ export default function HomeScreen({ navigation }) {
   const handleRainToggle = useCallback(() => {
     const next = !rainActive;
     if (next) {
+      console.log('RAIN TOGGLE: turning ON');
       setRainActive(true);
       setRainMounted(true);
       loadRainSound().then(() => {
-        rainSoundRef.current?.setPositionAsync(0);
-        rainSoundRef.current?.playAsync();
-      });
-      playThunder();
+        console.log('RAIN SOUND loaded, attempting play', rainSoundRef.current);
+        if (rainSoundRef.current) {
+          rainSoundRef.current.setPositionAsync(0).then(() => {
+            rainSoundRef.current.playAsync().then(() => console.log('RAIN play started')).catch(e => console.error('RAIN play error', e));
+          }).catch(e => console.error('RAIN setPosition error', e));
+        } else {
+          console.error('RAIN: sound ref is null after load');
+        }
+      }).catch(e => console.error('RAIN loadRainSound error', e));
+      console.log('THUNDER: calling playThunder');
+      playThunder().catch(e => console.error('THUNDER outer error', e));
     } else {
+      console.log('RAIN TOGGLE: turning OFF');
       setRainActive(false);
       rainSoundRef.current?.stopAsync();
     }
@@ -161,12 +178,14 @@ export default function HomeScreen({ navigation }) {
   }, []);
 
   const handleSwipeMove = useCallback((clientY) => {
-    if (swipeStartY.current === null) return;
+    if (swipeStartY.current === null) { console.log('SWIPE: startY is null, returning'); return; }
     const dy = clientY - swipeStartY.current;
+    console.log('SWIPE move dy:', dy);
     if (dy > 0) {
       setSwipeProgress(Math.min(dy / SWIPE_THRESHOLD, 1));
     }
     if (dy > SWIPE_THRESHOLD) {
+      console.log('SWIPE: threshold crossed, toggling rain');
       isSwiping.current = true;
       swipeStartY.current = null;
       handleRainToggle();
