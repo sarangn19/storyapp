@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Audio } from 'expo-av';
-import { View, Text, StyleSheet, Pressable, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useRive, Layout, Fit, Alignment, LoopType } from '@rive-app/react-canvas';
@@ -9,11 +8,32 @@ import TapePlayer from '../components/TapePlayer';
 import RainLayer from '../components/RainLayer';
 import { colors, typography, spacing, borderRadius } from '../constants/theme';
 
-const VOL_ITEMS = [
-  { key: 'fire', icon: '🔥', label: 'Fire' },
-  { key: 'rain', icon: '🌧️', label: 'Rain' },
-  { key: 'story', icon: '🎵', label: 'Story' },
-];
+const FireIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+    <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" fill="#ff6b6b" />
+    <path d="M15 11a3 3 0 11-6 0c0-1.657 1-3 3-5 2 2 3 3.343 3 5z" fill="#ff4500" opacity="0.8" />
+  </svg>
+);
+
+const RainIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+    <path d="M17 12a5 5 0 0 0-5-5 5 5 0 0 0-5 5h10z" fill="#74b9ff" />
+    <path d="M12 5a3 3 0 0 0-3 3h6a3 3 0 0 0-3-3z" fill="#a29bfe" />
+    <path d="M19 12a3 3 0 0 0-3-3h.5a2.5 2.5 0 0 0 0-5H16a6 6 0 0 0-11.9 1c-.1 0-.1 0-.2 0a3.5 3.5 0 0 0-.4 6.9V13h15.5z" fill="#dfe6e9" />
+    <line x1="8" y1="16" x2="6" y2="20" stroke="#74b9ff" strokeWidth="2" strokeLinecap="round" />
+    <line x1="12" y1="17" x2="10" y2="21" stroke="#74b9ff" strokeWidth="2" strokeLinecap="round" />
+    <line x1="16" y1="16" x2="14" y2="20" stroke="#74b9ff" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
+const MusicIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a29bfe" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 18V5l12-2v13" />
+    <circle cx="6" cy="18" r="3" fill="#a29bfe" />
+    <circle cx="18" cy="16" r="3" fill="#a29bfe" />
+  </svg>
+);
+
 
 export default function HomeScreen({ navigation }) {
   const [fireStarted, setFireStarted] = useState(false);
@@ -23,7 +43,6 @@ export default function HomeScreen({ navigation }) {
   const [rainVolume, setRainVolume] = useState(0.5);
   const [storyVolume, setStoryVolume] = useState(0.7);
   const [loading, setLoading] = useState(true);
-  const [activeVolume, setActiveVolume] = useState(null);
   const [swipeProgress, setSwipeProgress] = useState(0);
 
   const { rive, RiveComponent } = useRive({
@@ -215,63 +234,10 @@ export default function HomeScreen({ navigation }) {
       </View>
       <View style={[styles.swipeGlow, { opacity: swipeProgress }]} pointerEvents="none" />
       <View style={styles.headerRow} pointerEvents="box-none">
-        <View style={styles.volumeRow}>
-          {VOL_ITEMS.map((item) => (
-            <TouchableOpacity
-              key={item.key}
-              style={[styles.volButton, activeVolume === item.key && styles.volButtonActive]}
-              onPress={() => setActiveVolume(activeVolume === item.key ? null : item.key)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.volButtonIcon}>{item.icon}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity
-            style={[styles.rainButton, rainActive && styles.rainButtonActive]}
-            onPress={handleRainToggle}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name={rainActive ? 'rainy' : 'rainy-outline'}
-              size={20}
-              color={rainActive ? colors.primary : colors.textDim}
-            />
-          </TouchableOpacity>
-        </View>
+        <VolumeStrip label="Fire" value={fireVolume} onChange={setFireVolume} icon={<FireIcon />} activeColor="#ff6b6b" />
+        <VolumeStrip label="Rain" value={rainVolume} onChange={setRainVolume} icon={<RainIcon />} activeColor="#74b9ff" />
+        <VolumeStrip label="Story" value={storyVolume} onChange={setStoryVolume} icon={<MusicIcon />} activeColor="#a29bfe" />
       </View>
-
-      {activeVolume && (
-        <View style={styles.volPanel}>
-          <View style={styles.volPanelArrow} />
-          <View style={styles.volPanelContent}>
-            <View style={styles.volPanelHeader}>
-              <Text style={styles.volPanelLabel}>{VOL_ITEMS.find(v => v.key === activeVolume)?.icon} {VOL_ITEMS.find(v => v.key === activeVolume)?.label}</Text>
-              <Text style={styles.volPanelValue}>{Math.round(
-                (activeVolume === 'fire' ? fireVolume :
-                 activeVolume === 'rain' ? rainVolume :
-                 storyVolume) * 100
-              )}%</Text>
-            </View>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              value={activeVolume === 'fire' ? fireVolume : activeVolume === 'rain' ? rainVolume : storyVolume}
-              onChange={e => {
-                const val = parseFloat(e.target.value);
-                if (activeVolume === 'fire') setFireVolume(val);
-                else if (activeVolume === 'rain') setRainVolume(val);
-                else setStoryVolume(val);
-              }}
-              style={styles.volPanelSlider}
-            />
-          </View>
-          <Pressable style={styles.volPanelBackdrop} onPress={() => setActiveVolume(null)} />
-        </View>
-      )}
 
       <View style={styles.playerArea} pointerEvents="box-none">
         <TapePlayer storyVolume={storyVolume} />
@@ -285,6 +251,118 @@ export default function HomeScreen({ navigation }) {
     </View>
   );
 }
+
+const VolumeStrip = ({ label, value, onChange, icon, activeColor }) => {
+  const trackRef = useRef(null);
+  const dragging = useRef(false);
+  const onChangeRef = useRef(onChange);
+  const rectRef = useRef({ top: 0, height: 100 });
+  onChangeRef.current = onChange;
+
+  const doUpdate = useCallback((clientY) => {
+    const { top, height } = rectRef.current;
+    if (height <= 0) return;
+    const ratio = (top + height - clientY) / height;
+    onChangeRef.current(Math.max(0, Math.min(1, ratio)));
+  }, []);
+
+  const startDrag = useCallback((clientY) => {
+    dragging.current = true;
+    if (trackRef.current) {
+      const rect = trackRef.current.getBoundingClientRect();
+      rectRef.current = { top: rect.top, height: rect.height };
+    }
+    doUpdate(clientY);
+  }, [doUpdate]);
+
+  useEffect(() => {
+    const onMove = (e) => { if (dragging.current) doUpdate(e.clientY); };
+    const onUp = () => { dragging.current = false; };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [doUpdate]);
+
+  const pct = Math.round(value * 100);
+  const active = value > 0;
+
+  return (
+    <View style={stripStyles.container}>
+      <View style={[stripStyles.statusDot, { backgroundColor: active ? activeColor : '#2a2a32' }]} />
+      <Text style={[stripStyles.label, { color: active ? '#ddd' : '#5a5b67' }]}>{label}</Text>
+      <View
+        ref={trackRef}
+        style={stripStyles.track}
+        onTouchStart={(e) => { e.stopPropagation(); startDrag(e.touches[0].clientY); }}
+        onTouchMove={(e) => { if (dragging.current) { e.stopPropagation(); doUpdate(e.touches[0].clientY); } }}
+        onTouchEnd={() => { dragging.current = false; }}
+        onMouseDown={(e) => { e.stopPropagation(); startDrag(e.clientY); }}
+      >
+        <View style={[stripStyles.fill, { height: `${pct}%`, backgroundColor: active ? activeColor : '#2a2a32' }]} />
+        <View style={[stripStyles.knob, { bottom: `calc(${pct}% - 6px)`, borderColor: active ? activeColor : '#3a3a45' }]} />
+      </View>
+      <View style={stripStyles.iconWrap}>{icon}</View>
+    </View>
+  );
+};
+
+const stripStyles = StyleSheet.create({
+  container: {
+    width: 52,
+    alignItems: 'center',
+    gap: 4,
+  },
+  statusDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+  },
+  label: {
+    fontSize: 8,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
+  track: {
+    width: 14,
+    height: 72,
+    backgroundColor: '#151519',
+    borderRadius: 7,
+    position: 'relative',
+    overflow: 'hidden',
+    cursor: 'pointer',
+    borderWidth: 1,
+    borderColor: '#222',
+  },
+  fill: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderRadius: 7,
+  },
+  knob: {
+    position: 'absolute',
+    left: '50%',
+    marginLeft: -6,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#25272e',
+    borderWidth: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.4,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  iconWrap: {
+    opacity: 0.85,
+  },
+});
 
 const styles = StyleSheet.create({
   fullBg: {
@@ -319,93 +397,6 @@ const styles = StyleSheet.create({
     gap: 16,
     zIndex: 10,
   },
-  volumeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  volButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: 'rgba(42,24,72,0.6)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.04)',
-  },
-  volButtonActive: {
-    backgroundColor: 'rgba(241,196,15,0.12)',
-    borderColor: 'rgba(241,196,15,0.25)',
-  },
-  volButtonIcon: {
-    fontSize: 15,
-  },
-  volPanel: {
-    position: 'absolute',
-    top: 106,
-    zIndex: 100,
-    alignSelf: 'center',
-    alignItems: 'center',
-  },
-  volPanelArrow: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 8,
-    borderRightWidth: 8,
-    borderBottomWidth: 8,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderBottomColor: '#1a1c20',
-  },
-  volPanelContent: {
-    backgroundColor: '#1a1c20',
-    borderRadius: 14,
-    padding: 14,
-    width: 200,
-    borderWidth: 1,
-    borderColor: '#333',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 12,
-  },
-  volPanelHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  volPanelLabel: {
-    color: '#ccc',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  volPanelValue: {
-    color: '#f1c40f',
-    fontSize: 13,
-    fontWeight: '700',
-    fontFamily: 'monospace',
-  },
-  volPanelSlider: {
-    width: '100%',
-    height: 24,
-    accentColor: '#f1c40f',
-    cursor: 'pointer',
-    backgroundColor: 'transparent',
-    outline: 'none',
-  },
-  volPanelBackdrop: {
-    position: 'fixed',
-    top: 0, left: 0, right: 0, bottom: 0,
-    zIndex: -1,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
   playerArea: {
     position: 'absolute',
     top: 100,
@@ -413,20 +404,6 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 20,
     alignItems: 'center',
-  },
-  rainButton: {
-    width: 36, height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(42,24,72,0.6)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.04)',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 2,
-  },
-  rainButtonActive: {
-    backgroundColor: 'rgba(255,138,0,0.15)',
-    borderColor: 'rgba(255,138,0,0.3)',
   },
   dayBadge: {
     backgroundColor: 'rgba(42,24,72,0.6)',
